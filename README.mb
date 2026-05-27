@@ -1,0 +1,118 @@
+# 💬 Online Web Chat Application
+
+A real-time web chat application built with Python and Flask-SocketIO.
+Multiple users can connect and chat simultaneously. Includes an admin system to monitor and kick users.
+
+---
+
+## 🚀 Features
+
+- Real-time messaging using WebSocket protocol
+- User join/leave notifications
+- Online users list
+- Admin login system
+- Kick & ban users (kicked users cannot rejoin)
+- Accessible over the internet via ngrok
+
+---
+
+## 🛠️ Technologies Used
+
+| Technology | Purpose |
+|---|---|
+| Python | Server-side language |
+| Flask | Web framework |
+| Flask-SocketIO | WebSocket support |
+| HTML/CSS/JavaScript | Frontend (client side) |
+| jQuery | DOM manipulation |
+| Socket.IO (JS) | Client-side WebSocket |
+| ngrok | Public URL tunneling |
+
+---
+
+## 📁 Project Structure
+
+
+project/
+├── denem1.py          # Flask server
+└── templates/
+    └── index.html     # Frontend (HTML + JS + CSS)
+
+
+---
+
+## ⚙️ Installation & Setup
+
+**1. Clone the repository:**
+
+git clone https://github.com/YOUR_USERNAME/online-web-chat.git
+cd online-web-chat
+
+**2. Create a virtual environment:**
+
+python -m venv .venv
+source .venv/bin/activate
+
+
+**3. Install dependencies:**
+bash
+pip install flask flask-socketio
+
+
+**4. Run the server:**
+
+python denem1.py
+
+
+**5. Open in browser:**
+
+http://localhost:5000
+
+
+---
+
+## 🌐 Public Access (ngrok)
+
+To make the chat accessible from outside your network:
+
+
+ngrok http 5000
+
+
+Share the generated URL with others to connect from anywhere.
+
+---
+
+## 👮 Admin System
+
+- Open the chat and log in with a username
+- In the sidebar, enter the admin password: `admin123`
+- Click **Login** to activate admin mode
+- **Kick** buttons will appear next to each user
+- Kicked users are banned and cannot rejoin with the same username
+
+---
+
+## 🔧 How It Works
+
+1. The Flask server runs on port 5000
+2. Clients connect via WebSocket using Socket.IO
+3. When a message is sent, the server broadcasts it to all connected clients
+4. Each user has a unique Session ID (SID)
+5. Admin can disconnect any user by targeting their SID
+6. Banned users are stored in a list and blocked on reconnect attempt
+
+---
+
+## ⚠️ Limitations
+
+- Messages are stored in memory and lost when the server restarts
+- No database integration (future improvement: SQLite)
+- Admin password is hardcoded (future improvement: proper authentication)
+
+---
+
+## 👨‍💻 Author
+
+**Hasan Ozkarkin**
+Computer Networks Project — 2026

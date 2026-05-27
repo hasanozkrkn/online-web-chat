@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Online Web Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #chat-wrapper {
+            display: flex;
+            gap: 16px;
+            width: 900px;
+        }
+        #chat-container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        #sidebar {
+            width: 220px;
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h2 { text-align: center; margin-bottom: 16px; color: #333; }
+        h3 { color: #555; margin-bottom: 12px; font-size: 14px; }
+        #messages {
+            height: 380px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            background: #fafafa;
+        }
+        #messages p {
+            margin: 6px 0;
+            padding: 8px 12px;
+            background: #e8f4ff;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        #input-area { display: flex; gap: 8px; }
+        #username, #message {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        #username { width: 130px; }
+        #message { flex: 1; }
+        #sendBtn {
+            padding: 12px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #sendBtn:hover { background: #1d4ed8; }
+        #user-list { list-style: none; }
+        #user-list li {
+            padding: 8px 10px;
+            background: #f0f4ff;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kick-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 8px;
+            cursor: pointer;
+            font-size: 11px;
+            display: none;
+        }
+        .kick-btn:hover { background: #dc2626; }
+        #admin-panel { margin-top: 20px; border-top: 1px solid #eee; padding-top: 16px; }
+        #admin-password {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        #admin-login-btn {
+            width: 100%;
+            padding: 8px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        #admin-login-btn:hover { background: #6d28d9; }
+        #admin-status {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 6px;
+            color: #555;
+        }
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        #login-box {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            text-align: center;
+            width: 300px;
+        }
+        #login-box h2 { margin-bottom: 16px; }
+        #login-name {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+        #login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        #login-btn:hover { background: #1d4ed8; }
+        #banned-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        #banned-box {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            text-align: center;
+            width: 300px;
+        }
+        #banned-box h2 { color: #ef4444; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+<!-- Banned screen -->
+<div id="banned-screen">
+    <div id="banned-box">
+        <h2>🚫 You have been banned</h2>
+        <p>You were kicked by the admin and cannot rejoin.</p>
+    </div>
+</div>
+
+<!-- Login screen -->
+<div id="login-screen">
+    <div id="login-box">
+        <h2>💬 Join the Chat</h2>
+        <input type="text" id="login-name" placeholder="Enter your username...">
+        <button id="login-btn">Join</button>
+    </div>
+</div>
+
+<div id="chat-wrapper">
+    <div id="chat-container">
+        <h2>💬 Online Web Chat</h2>
+        <div id="messages"></div>
+        <div id="input-area">
+            <input type="text" id="username" placeholder="Username" readonly>
+            <input type="text" id="message" placeholder="Type a message...">
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <h3>👥 Online Users</h3>
+        <ul id="user-list"></ul>
+
+        <div id="admin-panel">
+            <h3>🔐 Admin Login</h3>
+            <input type="password" id="admin-password" placeholder="Admin password...">
+            <button id="admin-login-btn">Login</button>
+            <div id="admin-status"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var socket = io();
+    var isAdmin = false;
+    var myUsername = "";
+
+    // Login
+    $("#login-btn").on("click", function() {
+        var name = $("#login-name").val().trim();
+        if (name) {
+            myUsername = name;
+            $("#username").val(name);
+            socket.emit("join", { username: name });
+        }
+    });
+
+    $("#login-name").keypress(function(e) {
+        if (e.which == 13) $("#login-btn").click();
+    });
+
+    // Banned
+    socket.on("banned", function() {
+        $("#login-screen").hide();
+        $("#banned-screen").css("display", "flex");
+    });
+
+    // Kicked
+    socket.on("kicked", function() {
+        alert("You have been kicked by the admin!");
+        $("#banned-screen").css("display", "flex");
+        $("#chat-wrapper").hide();
+    });
+
+    // Hide login screen on join success
+    socket.on("user_list", function(list) {
+        if (myUsername && list.includes(myUsername)) {
+            $("#login-screen").hide();
+        }
+        $("#user-list").empty();
+        list.forEach(function(username) {
+            var li = $("<li>").text(username);
+            var kickBtn = $("<button>").addClass("kick-btn").text("Kick");
+            if (isAdmin && username !== myUsername) {
+                kickBtn.show();
+            }
+            kickBtn.on("click", function() {
+                var password = $("#admin-password").val();
+                socket.emit("kick", { username: username, password: password });
+            });
+            li.append(kickBtn);
+            $("#user-list").append(li);
+        });
+    });
+
+    // Messages
+    socket.on("message", function(data) {
+        $("#messages").append($("<p>").text(data));
+        $("#messages").scrollTop($("#messages")[0].scrollHeight);
+    });
+
+    // Admin login
+    $("#admin-login-btn").on("click", function() {
+        var password = $("#admin-password").val();
+        if (password === "admin123") {
+            isAdmin = true;
+            $("#admin-status").text("✅ Logged in as Admin!");
+            $(".kick-btn").show();
+        } else {
+            $("#admin-status").text("❌ Wrong password!");
+        }
+    });
+
+    // Error
+    socket.on("error", function(msg) {
+        alert(msg);
+    });
+
+    // Send message
+    function sendMessage() {
+        var message = $("#message").val().trim();
+        if (myUsername && message) {
+            socket.send(myUsername + ": " + message);
+            $("#message").val("");
+        }
+    }
+
+    $("#sendBtn").on("click", sendMessage);
+    $("#message").keypress(function(e) {
+        if (e.which == 13) sendMessage();
+    });
+</script>
+
+</body>
+</html>
